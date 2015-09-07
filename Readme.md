@@ -21,6 +21,7 @@ sge.math:
  - MVector[2,3,4]: Vectors supporting destructive updates
  - Matrix[2,3,4]: Matrix multiplication
  - Quaternion: Quaternion Rotations
+
 sge.bounds:
  - Line2D: Check intersections of 2D lines
  - Circle: Check intersections and containment of circles
@@ -28,15 +29,18 @@ sge.bounds:
  - AABB check intersections and containment within Axis
    aligned bounding boxes
  - Sphere check intersections and containment within spheres
+
 sge.color:
  - RGBA color as float ratios (0..1), and int values (0..255)
  - HSL color
+
 sge.geom:
  - Vertex: Drawable Vertex (position, normal, texture coordinate,  color),
  - Triangle: Face composed of 3 Vertices
  - VertexArray: Interleaved float[] with Stride equal to Vertex.SIZE
  - Vector3Array: interleaved float[] with Stride equals to Vector3.SIZE
  - Mesh: Surface object using lists of Vertices and indices
+
 sge.renderer:
  - GLSLProgram: Compile and bind shader resources
  - Image: Loading images from files or from arbitrary producers (tbd)
