@@ -1,0 +1,71 @@
+apply plugin: "application"
+apply plugin: "eclipse"
+apply plugin: "idea"
+apply plugin: "maven-publish"
+
+// Project Info
+String proj_name       = "SHEngine"
+String proj_version    = "0.5"
+String proj_base_group = "com.stuarthacking.sge"
+
+sourceCompatibility = "1.7"
+
+repositories {
+  mavenLocal()
+  mavenCentral()
+}
+
+dependencies {
+  compile "log4j:log4j:1.2.16"
+  compile "org.lwjgl.lwjgl:lwjgl:2.9.3"
+  compile "org.lwjgl.lwjgl:lwjgl_util:2.9.3"
+
+  testCompile "junit:junit:4.+"
+}
+
+jar {
+  manifest {
+    attributes "Implementation-Title": proj_name, "Implementation-Version": proj_version
+  }
+}
+
+publishing {
+  publications {
+    maven(MavenPublication) {
+      groupId    proj_base_group
+      artifactId proj_name
+      version    proj_version
+
+      from components.java
+    }
+  }
+}
+
+// Unpack the native libraries required by LWJGL
+['windows', 'linux', 'osx'].each { platform ->
+  task "${platform}Natives" {
+    String outputDir = "$buildDir/natives-$platform"
+    inputs.files(configurations.compile)
+    outputs.dir(outputDir)
+    doLast {
+        copy {
+            def artifacts = configurations.compile.resolvedConfiguration.resolvedArtifacts
+                .findAll { it.classifier == "natives-$platform" }
+            artifacts.each {
+                from zipTree(it.file)
+            }
+        into outputDir
+    }
+    }
+  }
+}
+
+// Application Distribution
+
+mainClassName = 'Main'
+
+applicationDefaultJvmArgs = ["-Djava.library.path=natives"]
+
+applicationDistribution.from(linuxNatives) {
+  into "natives"
+}
