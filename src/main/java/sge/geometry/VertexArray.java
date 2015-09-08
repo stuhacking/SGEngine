@@ -19,66 +19,78 @@ public class VertexArray {
         buffer = DirectBuffer.createFloatBuffer(capacity * Vertex.SIZE);
     }
 
+    public VertexArray (final List<Vertex> vertices) {
+        this(vertices.size());
+
+        for (Vertex v : vertices) {
+            buffer.put(v.toFloatArray());
+        }
+
+        buffer.flip();
+    }
+
     /**
      * Create an interleaved vertex array from a list of vertices. Doesn't use an index buffer, assumes all
      * vertex references exist in the list, in order and duplicated. This will create an array in a format
      * that OpenGL can interpret as GL_TRIANGLES.
      */
-    public static VertexArray fromVertices (Mesh data) {
-        return fromVertices(data.vertices);
-    }
-
-    public static VertexArray fromVertices (List<Vertex> vertices) {
-        VertexArray array = new VertexArray(vertices.size());
-
-        for (Vertex v : vertices) {
-            array.buffer.put(v.toFloatArray());
-        }
-
-        array.buffer.flip();
-
-        return array;
+    public static VertexArray fromVertices (final Mesh data) {
+        return new VertexArray(data.vertices);
     }
 
     /**
      * Create an interleaved vertex array from a list of faces. This will create an array in a format that
      * OpenGL can interpret as GL_TRIANGLES. Vertex information will not be modified in any way.
      */
-    public static VertexArray fromFaces (Mesh data) {
+    public static VertexArray fromFaces (final Mesh data) {
         return fromFaces(data, false);
     }
 
     /**
-     * Create an interleaved vertex array from a list of faces. This will create an array in a format that
-     * OpenGL can interpret as GL_TRIANGLES. Vertex Colors may be altered depending on the value of
-     * solidifyColors. - If false, do not adjust vertex color attribute. - If true, use the color of v1 for
-     * each vertex in the face which will result in solid face colors.
+     * Create an interleaved vertex array from a list of faces.
+     *
+     * Creates an array in a format that OpenGL can interpret as GL_TRIANGLES. Vertex
+     * Colors may be altered depending on the value of solidFaceColors.
+     *
+     * @param data Mesh data.
+     * @param solidFaceColors If true each triangle will inherit the vertex color of the first Vertex, resulting in
+     *                       flat shading. Otherwise, vertices will retain their own color.
+     *
      */
-    public static VertexArray fromFaces (Mesh data, boolean solidifyColors) {
+    public static VertexArray fromFaces (final Mesh data, final boolean solidFaceColors) {
         VertexArray array = new VertexArray(data.getFaceCount() * 3);
+        Vertex v1, v2, v3;
 
-        for (int k = 0; k < data.getFaceCount(); k++) {
-            Triangle f = data.getFace(k);
-            Vertex v1, v2, v3;
-            if (solidifyColors) {
-                RGBAColor faceColor = f.getFirst().getColor();
+        if (solidFaceColors) {
+            for (int k = 0, kMax = data.getFaceCount(); k < kMax; k++) {
+                Triangle f = data.getFace(k);
+                RGBAColor faceColor = f.v1.color;
 
-                v1 = new Vertex(f.getFirst());
-                v1.setColor(faceColor);
-                v2 = new Vertex(f.getSecond());
-                v2.setColor(faceColor);
-                v3 = new Vertex(f.getThird());
-                v3.setColor(faceColor);
+                v1 = new Vertex(f.v1);
+                v1.color = faceColor;
 
-            } else {
-                v1 = f.getFirst();
-                v2 = f.getSecond();
-                v3 = f.getThird();
+                v2 = new Vertex(f.v2);
+                v2.color = faceColor;
+
+                v3 = new Vertex(f.v3);
+                v3.color = faceColor;
+
+                array.buffer.put(v1.toFloatArray());
+                array.buffer.put(v2.toFloatArray());
+                array.buffer.put(v3.toFloatArray());
             }
+        } else {
+            for (int k = 0, kMax = data.getFaceCount(); k < kMax; k++) {
+                Triangle f = data.getFace(k);
 
-            array.buffer.put(v1.toFloatArray());
-            array.buffer.put(v2.toFloatArray());
-            array.buffer.put(v3.toFloatArray());
+                v1 = f.v1;
+                v2 = f.v2;
+                v3 = f.v3;
+
+                array.buffer.put(v1.toFloatArray());
+                array.buffer.put(v2.toFloatArray());
+                array.buffer.put(v3.toFloatArray());
+            }
         }
 
         array.buffer.flip();
@@ -87,26 +99,20 @@ public class VertexArray {
     }
 
     /**
-     * Construct a Vertex object from the floats beginning from ``index'' up to Vertex.SIZE. ``index'' is the
-     * Vertex position into the float array.
+     * Get the Vertex at position `index'.
      */
-    public Vertex getVertex (int index) {
+    public Vertex get (final int index) {
         float[] vertData = new float[Vertex.SIZE];
         buffer.get(vertData, index * Vertex.SIZE, Vertex.SIZE);
         return new Vertex(vertData);
     }
 
     /**
-     * Set the float data beginning at ``index'' to be the values contained in Vertex ``vert''. ``index'' is
-     * the Vertex position into the float array.
+     * Set the float data beginning at `index' to be the values of vert.
      */
-    public void setVertex (int index, Vertex vert) {
-        float[] vertData = vert.toFloatArray();
-        float[] buf = buffer.array();
-        int i = index * Vertex.SIZE;
+    public void set (final int index, final Vertex vert) {
+        float[] data = vert.toFloatArray();
 
-        for (int x = 0; x < Vertex.SIZE; x++) {
-            buf[i++] = vertData[x];
-        }
+        buffer.put(data, index * Vertex.SIZE, Vertex.SIZE);
     }
 }

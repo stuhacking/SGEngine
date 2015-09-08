@@ -7,10 +7,10 @@ import sge.math.Vector3;
 import sge.util.DirectBuffer;
 
 /**
- * Contiguously allocated Vertex Array for storing a list of Vertex objects
+ * Contiguously allocated Vector3 Array for storing a list of Vector3 objects
  * as an interleaved float array. Permits modification of contained vertices but
  * not resizing the array.
- * <p/>
+ *
  * This is a utility class for emulating C++ style contiguous buffers. Useful
  * for preparing data for, e.g. streaming to the GPU.
  */
@@ -18,7 +18,7 @@ public class Vector3Array {
 
     public FloatBuffer buffer;
 
-    public Vector3Array (int capacity) {
+    public Vector3Array (final int capacity) {
         buffer = DirectBuffer.createFloatBuffer(capacity * Vector3.SIZE);
     }
 
@@ -26,37 +26,32 @@ public class Vector3Array {
      * Convert a List<Vertex> into a contiguous interleaved float array.
      * See {@link Vertex} for data layout.
      */
-    public Vector3Array (List<Vector3> data) {
+    public Vector3Array (final List<Vector3> data) {
         this(data.size());
+
         for (Vector3 v : data) {
             buffer.put(v.toFloatArray());
         }
-        buffer.rewind();
+
+        buffer.flip();
     }
 
     /**
-     * Construct a Vertex object from the floats beginning
-     * from ``index'' up to Vector3.SIZE.
-     * ``index'' is the Vertex position into the float array.
+     * Get the Vector3 at position `index' in the array.
      */
-    public Vector3 getVertex (int index) {
+    public Vector3 get (final int index) {
         float[] vecData = new float[Vector3.SIZE];
         buffer.get(vecData, index * Vector3.SIZE, Vector3.SIZE);
         return new Vector3(vecData);
     }
 
     /**
-     * Set the float data beginning at ``index'' to be the
-     * values contained in Vertex ``vert''.
-     * ``index'' is the Vertex position into the float array.
+     * Set the float data beginning at `index' to be the
+     * value of vec.
      */
-    public void setVertex (int index, Vector3 vec) {
-        float[] vecData = vec.toFloatArray();
-        float[] buf = buffer.array();
-        int i = index * Vector3.SIZE;
+    public void set (final int index, final Vector3 vec) {
+        float[] data = vec.toFloatArray();
 
-        for (int x = 0; x < Vector3.SIZE; x++) {
-            buf[i++] = vecData[x];
-        }
+        buffer.put(data, index * Vector3.SIZE, Vector3.SIZE);
     }
 }

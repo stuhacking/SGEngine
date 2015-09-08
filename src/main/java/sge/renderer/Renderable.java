@@ -11,5 +11,5 @@ public interface Renderable {
      * Provide an estimate how much much GPU memory will
      * be used by the render object.
      */
-    public long byteCount ();
+    public long byteSize();
 }

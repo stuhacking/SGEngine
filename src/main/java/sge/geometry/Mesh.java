@@ -3,13 +3,12 @@ package sge.geometry;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
-
 import sge.color.RGBAColor;
 import sge.math.Vector3;
 import sge.util.DirectBuffer;
 
 /**
- * Mesh stores vertex information for meshes that are
+ * Mesh stores vertex information for meshes which are
  * not expected to be altered in any way other than global
  * orientation.
  */
@@ -18,37 +17,46 @@ public class Mesh {
     public final ArrayList<Vertex> vertices = new ArrayList<Vertex>();
     public final ArrayList<Integer> indices = new ArrayList<Integer>();
 
+    /**
+     * Return the number of vertices in this Mesh.
+     */
     public int getVertexCount () {
         return vertices.size();
     }
 
+    /**
+     * Return the number of indices in this Mesh.
+     */
     public int getIndexCount () {
         return indices.size();
     }
 
+    /**
+     * Return the number of triangular faces in this Mesh.
+     */
     public int getFaceCount () {
         return indices.size() / 3;
     }
 
-    public Vertex getVertex (int index) {
+    public Vertex getVertex (final int index) {
         return vertices.get(index);
     }
 
-    public int getIndex (int index) {
+    public int getIndex (final int index) {
         return indices.get(index);
     }
 
-    public Triangle getFace (int index) {
+    public Triangle getFace (final int index) {
         return new Triangle(vertices.get(indices.get(index)),
                             vertices.get(indices.get(index + 1)),
                             vertices.get(indices.get(index + 2)));
     }
 
-    public void addVert (Vertex vert) {
+    public void addVert (final Vertex vert) {
         vertices.add(vert);
     }
 
-    public void addFace (int v1, int v2, int v3) {
+    public void addFace (final int v1, final int v2, final int v3) {
         indices.add(v1);
         indices.add(v2);
         indices.add(v3);
@@ -57,12 +65,12 @@ public class Mesh {
     /**
      * Add a Quad to the primitive, made from two triangles. The vectors forming the
      * corners should be arranged as follows:
-     * <p/>
-     * 1 --- 2
-     * |   / |
-     * | /   |
-     * 4 --- 3
-     * <p/>
+     *
+     *   1 --- 2
+     *   |   / |
+     *   | /   |
+     *   4 --- 3
+     *
      * TODO: Would be better if Vectors were arranged counter-clockwise
      * to maintain consistency with OpenGL frontface order.
      *
@@ -92,10 +100,10 @@ public class Mesh {
         Vertex v3 = new Vertex(xy1);
         Vertex v4 = new Vertex(x1y1);
 
-        v1.setNormal(normal);
-        v2.setNormal(normal);
-        v3.setNormal(normal);
-        v4.setNormal(normal);
+        v1.normal = normal;
+        v2.normal = normal;
+        v3.normal = normal;
+        v4.normal = normal;
 
         // Set default Texture coordinates of (0,0)..(1,1) for each Quad.
         v3.setTexCoords(0f, 0f);
@@ -119,58 +127,54 @@ public class Mesh {
     public void smoothNormals () {
         // Clear existing normals
         for (Vertex v : vertices) {
-            v.setNormal(Vector3.ZERO);
+            v.normal = Vector3.ZERO;
         }
 
-        for (int k = 0; k < getFaceCount(); k++) {
+        for (int k = 0, kMax = getFaceCount(); k < kMax; k++) {
             Triangle f = getFace(k);
-
-            Vector3 v1 = f.normal();
+            Vector3 normal = f.normal();
 
             // Average shared normals - smooth shading
-            Vertex current;
-
-            current = f.getFirst();
-            current.setNormal(current.getNormal().add(v1).normalize());
-
-            current = f.getSecond();
-            current.setNormal(current.getNormal().add(v1).normalize());
-
-            current = f.getThird();
-            current.setNormal(current.getNormal().add(v1).normalize());
+            f.v1.normal = f.v1.normal.add(normal).normalize();
+            f.v2.normal = f.v2.normal.add(normal).normalize();
+            f.v3.normal = f.v3.normal.add(normal).normalize();
         }
     }
 
-    public void clearColor (float r, float g, float b, float a) {
+    /**
+     * Set all the Vertex Colors in this Mesh to a single color given by
+     * (r, g, b, a) values.
+     *
+     * @param r Red value.
+     * @param g Green value.
+     * @param b Blue value.
+     * @param a Alpha value.
+     */
+    public void clearColor (final float r, final float g, final float b, final float a) {
         clearColor(new RGBAColor(r, g, b, a));
     }
 
-    public void clearColor (RGBAColor color) {
+    /**
+     * Set all the Vertex Colors in this Mesh to a single color given by
+     * an RGBAColor value..
+     *
+     * @param color Combined color values.
+     */
+    public void clearColor (final RGBAColor color) {
         for (Vertex v : vertices) {
-            v.setColor(color);
+            v.color = color;
         }
     }
 
-    public long vertCount () {
-        return vertices.size();
-    }
-
-    @Override
-    public Mesh clone () {
-        Mesh clone = new Mesh();
+    /**
+     * Apply a translation to the vertices in this Mesh.
+     * Destructive.
+     *
+     * @param offset
+     */
+    public void translate (final Vector3 offset) {
         for (Vertex v : vertices) {
-            clone.addVert(new Vertex(v));
-        }
-        for (int k = 0; k < getFaceCount(); k++) {
-            clone.addFace(indices.get(k), indices.get(k + 1), indices.get(k + 2));
-        }
-
-        return clone;
-    }
-
-    public void translate (Vector3 offset) {
-        for (Vertex v : vertices) {
-            v.setPosition(v.getPosition().add(offset));
+            v.position = v.position.add(offset);
         }
     }
 
@@ -204,37 +208,50 @@ public class Mesh {
         return buffer;
     }
 
-    /**
-     * Create an interleaved vertex array from a list of faces. This will create an array in a format that
-     * OpenGL can interpret as GL_TRIANGLES. Vertex Colors may be altered depending on the value of
-     * solidifyColors. - If false, do not adjust vertex color attribute. - If true, use the color of v1 for
-     * each vertex in the face which will result in solid face colors.
+     /**
+     * Create an interleaved vertex array from a list of faces.
+     *
+     * Creates an array in a format that OpenGL can interpret as GL_TRIANGLES. Vertex
+     * Colors may be altered depending on the value of solidFaceColors.
+     *
+     * @param solidFaceColors If true each triangle will inherit the vertex color of the first Vertex, resulting in
+     *                       flat shading. Otherwise, vertices will retain their own color.
+     *
      */
-    public FloatBuffer faceArray (boolean solidFaceColors) {
+    public FloatBuffer faceArray (final boolean solidFaceColors) {
         FloatBuffer buffer = DirectBuffer.createFloatBuffer(getFaceCount() * Vertex.SIZE * 3);
+        Vertex v1, v2, v3;
 
-        for (int k = 0; k < getFaceCount(); k++) {
-            Triangle f = getFace(k);
-            Vertex v1, v2, v3;
-            if (solidFaceColors) {
-                RGBAColor faceColor = f.getFirst().getColor();
+        if (solidFaceColors) {
+            for (int k = 0, kMax = getFaceCount(); k < kMax; k++) {
+                Triangle f = getFace(k);
+                RGBAColor faceColor = f.v1.color;
 
-                v1 = new Vertex(f.getFirst());
-                v1.setColor(faceColor);
-                v2 = new Vertex(f.getSecond());
-                v2.setColor(faceColor);
-                v3 = new Vertex(f.getThird());
-                v3.setColor(faceColor);
+                v1 = new Vertex(f.v1);
+                v1.color = faceColor;
 
-            } else {
-                v1 = f.getFirst();
-                v2 = f.getSecond();
-                v3 = f.getThird();
+                v2 = new Vertex(f.v2);
+                v2.color = faceColor;
+
+                v3 = new Vertex(f.v3);
+                v3.color = faceColor;
+
+                buffer.put(v1.toFloatArray());
+                buffer.put(v2.toFloatArray());
+                buffer.put(v3.toFloatArray());
             }
+        } else {
+            for (int k = 0, kMax = getFaceCount(); k < kMax; k++) {
+                Triangle f = getFace(k);
 
-            buffer.put(v1.toFloatArray());
-            buffer.put(v2.toFloatArray());
-            buffer.put(v3.toFloatArray());
+                v1 = f.v1;
+                v2 = f.v2;
+                v3 = f.v3;
+
+                buffer.put(v1.toFloatArray());
+                buffer.put(v2.toFloatArray());
+                buffer.put(v3.toFloatArray());
+            }
         }
 
         buffer.flip();

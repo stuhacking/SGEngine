@@ -2,16 +2,13 @@ package sge.renderer.gl4;
 
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
-
 import sge.color.RGBAColor;
 import sge.geometry.Mesh;
 import sge.geometry.Vertex;
-import sge.geometry.VertexArray;
 import sge.math.Vector2;
 import sge.math.Vector3;
 import sge.renderer.Renderable;
@@ -19,7 +16,7 @@ import sge.renderer.Renderable;
 /**
  * MeshRenderer handles the interface to OpenGL for
  * drawing {@link Mesh} objects.
- * <p/>
+ *
  * TODO: Reify Vertex Attributes?
  */
 public class MeshRenderer implements Renderable {
@@ -48,7 +45,7 @@ public class MeshRenderer implements Renderable {
     }
 
     public boolean isCompiled () {
-        return glVboID > 0;
+        return 0 < glVaoID + glVboID + glIboID;
     }
 
     /**
@@ -121,11 +118,7 @@ public class MeshRenderer implements Renderable {
      * @return
      */
     @Override
-    public long byteCount () {
-        return (glVboID > 0) ? mesh.getVertexCount() * Vertex.BYTE_SIZE : 0;
-    }
-
-    public long vertCount () {
-        return mesh.getVertexCount();
+    public long byteSize () {
+        return isCompiled() ? mesh.getVertexCount() * Vertex.BYTE_SIZE : 0;
     }
 }
