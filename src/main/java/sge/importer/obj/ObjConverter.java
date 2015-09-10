@@ -20,8 +20,6 @@ public class ObjConverter {
         // .obj models are organised into mesh subgroups, however,
         // the vertex index numbering is continuous.
         for (ObjGroup g : document.subgroups()) {
-            if (null == g)
-                continue;
 
             // Read in 3 vertices each time and create a triangle face.
             for (int k = 2, kMax = g.getVertexCount(); k < kMax; k += 3) {
@@ -68,7 +66,12 @@ public class ObjConverter {
         return m;
     }
 
-    public static Mesh objDocumentToMesh (String filename) {
+    /**
+     * Convert a .obj document to a Mesh object.
+     *
+     * @param filename Location of obj
+     */
+    public static Mesh objDocumentToMesh (final String filename) {
         ObjDocument doc = new ObjDocument(filename);
 
         return objDocumentToMesh(doc);

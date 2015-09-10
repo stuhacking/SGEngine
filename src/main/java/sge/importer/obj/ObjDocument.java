@@ -42,6 +42,7 @@ public class ObjDocument {
     public static final int DEFAULT_SIZE = 128;
     public static final int DEFAULT_GROUP_SIZE = 8;
 
+    private String filename;
     private String name ="untitled_obj";
 
     private ArrayList<Vector3> positionVectors = new ArrayList<Vector3>(DEFAULT_SIZE);
@@ -59,6 +60,7 @@ public class ObjDocument {
      * Parse an Obj File.
      */
     public ObjDocument (final String filename) {
+        this.filename = filename;
         readFromFile(filename);
     }
 
@@ -128,6 +130,8 @@ public class ObjDocument {
 
         try (BufferedReader inStream = new BufferedReader(new FileReader(f))) {
             String line;
+            int lineNumber = 1;
+
             while ((line = inStream.readLine()) != null) {
 
                 if (line.length() <= 1 || line.startsWith("#")) {
@@ -163,9 +167,11 @@ public class ObjDocument {
                         break;
                     // Line is a Face/Polygon mapping
                     case 'f':
-                        parseFace(line);
+                        parseFace(lineNumber, line);
                         break;
                 }
+
+                lineNumber++;
             }
 
             // Add final group.
@@ -248,7 +254,7 @@ public class ObjDocument {
     //  f 1 2 3 4
     //  f 1//1 2//1 3//1 4//1 # with positions & normals
     //  f 1/1/3 2/2/3 3/3/1 4/4/1 # with positions & tex coords & normals
-    private void parseFace (String line) {
+    private void parseFace (final int lineNumber, String line) {
         line = line.substring(1).trim();
         String[] tokens = line.split(" +");
 
@@ -256,6 +262,12 @@ public class ObjDocument {
         // face, we need to create it.
         if (null == currentSubgroup) {
             currentSubgroup = new ObjGroup();
+        }
+
+        // Skip malformed faces -will cause holes in output mesh.
+        if (tokens.length < 3) {
+            logger.error("Malformed Face in .obj doc: " + filename + " at line: " + lineNumber);
+            return;
         }
 
         // Convert n-sided faces to triangles while reading.
