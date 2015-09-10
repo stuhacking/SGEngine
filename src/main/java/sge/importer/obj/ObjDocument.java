@@ -139,35 +139,29 @@ public class ObjDocument {
                     continue;
                 }
 
-                switch (line.charAt(0)) {
-                    // Line is an object/group marker
-                    // FIXME Probably broken for complex obj file layouts.
-                    case 'o':
-                        parseObjName(line);
+                String[] tokens = line.split(" +");
+                switch (tokens[0]) {
+                    case "o":
+                        parseObjName(lineNumber, tokens);
                         break;
-                    case 'g':
-                        parseSubgroup(line);
+                    case "g":
+                        parseSubgroup(lineNumber, tokens);
                         break;
                     // Line is a description of a vertex attr
-                    case 'v':
-                        switch (line.charAt(1)) {
-                            // Line is a normal
-                            case 'n':
-                                parseVertexNormals(line);
-                                break;
-                            // Line is a texture coordinate
-                            case 't':
-                                parseTexCoords(line);
-                                break;
-                            // Line is position data
-                            default:
-                                parsePositionVector(line);
-                                break;
-                        }
+                    case "v":
+                        parsePositionVector(lineNumber, tokens);
+                        break;
+                    // Line is a normal
+                    case "vn":
+                        parseVertexNormals(lineNumber, tokens);
+                        break;
+                    // Line is a texture coordinate
+                    case "vt":
+                        parseTexCoords(lineNumber, tokens);
                         break;
                     // Line is a Face/Polygon mapping
-                    case 'f':
-                        parseFace(lineNumber, line);
+                    case "f":
+                        parseFace(lineNumber, tokens);
                         break;
                 }
 
@@ -186,64 +180,72 @@ public class ObjDocument {
         }
     }
 
-    private void parseObjName (String line) {
-        line = line.substring(1).trim();
-        String[] tokens = line.split(" +");
+    private void parseObjName (final int lineNumber, final String[] tokens) {
+        if (tokens.length < 2) {
+            logger.error("Untitled object marker in .obj doc: " + filename + " at line: " + lineNumber);
+            return;
+        }
 
-        name = tokens[0];
+        name = tokens[1];
     }
 
-    private void parseSubgroup (String line) {
-        line = line.substring(1).trim();
-        String[] tokens = line.split(" +");
+    private void parseSubgroup (final int lineNumber, final String[] tokens) {
 
         if (null != currentSubgroup) {
             addSubgroup(currentSubgroup);
         }
 
-        currentSubgroup = new ObjGroup(tokens[0]);
+        if (tokens.length < 2) {
+            logger.error("Untitled group marker in .obj doc: " + filename + " at line: " + lineNumber);
+            currentSubgroup = new ObjGroup();
+        } else {
+            currentSubgroup = new ObjGroup(tokens[1]);
+        }
+
     }
 
-    private void parsePositionVector (String line) {
-        // Trim the line to get rid of the first character and any
-        // surrounding whitespace. This puts the position data at the
-        // start of the line.
-        line = line.substring(1).trim();
-        String[] tokens = line.split(" +");
+    private void parsePositionVector (final int lineNumber, final String[] tokens) {
 
-        float x = Float.parseFloat(tokens[0]);
-        float y = Float.parseFloat(tokens[1]);
-        float z = Float.parseFloat(tokens[2]);
+        if (tokens.length < 4) {
+            logger.error("Malformed Vertex Position in .obj doc: " + filename + " at line: " + lineNumber);
+            addPosition(Vector3.ZERO);
+        } else {
+            float x = Float.parseFloat(tokens[1]);
+            float y = Float.parseFloat(tokens[2]);
+            float z = Float.parseFloat(tokens[3]);
 
-        addPosition(new Vector3(x, y, z));
+            addPosition(new Vector3(x, y, z));
+        }
     }
 
-    private void parseVertexNormals (String line) {
-        // Trim the line to get rid of the first character and any
-        // surrounding whitespace. This puts the position data at the
-        // start of the line.
-        line = line.substring(2).trim();
-        String[] tokens = line.split(" +");
+    private void parseVertexNormals (final int lineNumber, final String[] tokens) {
 
-        float x = Float.parseFloat(tokens[0]);
-        float y = Float.parseFloat(tokens[1]);
-        float z = Float.parseFloat(tokens[1]);
+        if (tokens.length < 4) {
+            logger.error("Malformed Normal in .obj doc: " + filename + " at line: " + lineNumber);
+            addNormal(Vector3.ZERO);
+        } else {
+            float x = Float.parseFloat(tokens[1]);
+            float y = Float.parseFloat(tokens[2]);
+            float z = Float.parseFloat(tokens[3]);
 
-        addNormal(new Vector3(x, y, z));
+            addNormal(new Vector3(x, y, z));
+        }
+
         hasNormals = true;
     }
 
-    private void parseTexCoords (String line) {
-        // Trim the line to get rid of the first character and any
-        // surrounding whitespace. This puts the position data at the
-        // start of the line.
-        line = line.substring(2).trim();
-        String[] tokens = line.split(" +");
+    private void parseTexCoords (final int lineNumber, final String[] tokens) {
 
-        float x = Float.parseFloat(tokens[0]);
-        float y = Float.parseFloat(tokens[1]);
+        if (tokens.length < 3) {
+            logger.error("Malformed Texture Coord in .obj doc: " + filename + " at line: " + lineNumber);
+            addTexCoord(Vector2.ZERO);
+        } else {
+            float x = Float.parseFloat(tokens[1]);
+            float y = Float.parseFloat(tokens[2]);
 
-        addTexCoord(new Vector2(x, y));
+            addTexCoord(new Vector2(x, y));
+        }
+
         hasTexCoords = true;
     }
 
@@ -254,9 +256,7 @@ public class ObjDocument {
     //  f 1 2 3 4
     //  f 1//1 2//1 3//1 4//1 # with positions & normals
     //  f 1/1/3 2/2/3 3/3/1 4/4/1 # with positions & tex coords & normals
-    private void parseFace (final int lineNumber, String line) {
-        line = line.substring(1).trim();
-        String[] tokens = line.split(" +");
+    private void parseFace (final int lineNumber, final String[] tokens) {
 
         // If there hasn't been a group marker before we hit the first
         // face, we need to create it.
@@ -264,16 +264,16 @@ public class ObjDocument {
             currentSubgroup = new ObjGroup();
         }
 
-        // Skip malformed faces -will cause holes in output mesh.
-        if (tokens.length < 3) {
+        // Skip malformed faces -will cause holes in output mesh, but not fatal.
+        if (tokens.length < 4) {
             logger.error("Malformed Face in .obj doc: " + filename + " at line: " + lineNumber);
             return;
         }
 
         // Convert n-sided faces to triangles while reading.
-        for (int i = 2; i < tokens.length; i++) {
+        for (int i = 3; i < tokens.length; i++) {
             // TODO: Parse out these index lists
-            String[] vec1Indices = tokens[0].split("/");
+            String[] vec1Indices = tokens[1].split("/");
             String[] vec2Indices = tokens[i - 1].split("/");
             String[] vec3Indices = tokens[i].split("/");
 
