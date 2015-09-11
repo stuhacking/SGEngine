@@ -11,28 +11,6 @@ public abstract class PrettyPrint {
     private static final Logger logger = Logger.getLogger(PrettyPrint.class);
 
     /**
-     * Pad a String with leading spaces if the input string is narrower than the desired width.
-     *
-     * @param value
-     * @param width
-     * @return
-     */
-    public static String padLeft (final String value, final int width) {
-        return String.format("%" + width + "s", value);
-    }
-
-    /**
-     * Pad a string with trailing spaces if the input string is narrower than the desired width.
-     *
-     * @param value
-     * @param width
-     * @return
-     */
-    public static String padRight (final String value, final int width) {
-        return String.format("%-" + width + "s", value);
-    }
-
-    /**
      * Print an array of data as a Square Matrix of the given rank. If the input data does not
      * contain enough values then an empty string is returned.
      *
@@ -63,7 +41,7 @@ public abstract class PrettyPrint {
             lines[k] = "";
             String sep = "";
             for (int l = 0; l < rank; l++) {
-                lines[k] += sep + padLeft(values[l * rank + k], maxValueWidth);
+                lines[k] += sep + StringUtils.padRight(values[l * rank + k], maxValueWidth);
                 sep = " ";
             }
 
